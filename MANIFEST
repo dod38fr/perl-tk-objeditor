@@ -1,0 +1,11 @@
+ChangeLog
+ObjEditor.pm
+ObjEditorDialog.pm
+MANIFEST
+README
+Makefile.PL
+demo/obj_ed.pl
+t/obj_editor.t
+t/obj_ed_dialog.t
+t/pod.t
+META.yml                                 Module meta-data (added by MakeMaker)
