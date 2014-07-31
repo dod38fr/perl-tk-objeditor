@@ -1,5 +1,9 @@
 {{$NEXT}}
 
+2.008 2014-07-31
+
+    * refreshed the code and tests. No other functional changes
+
 2.005 2007-10-05
  
 	* ObjEditor.pm (edit_object): new function so that obj_editor can
