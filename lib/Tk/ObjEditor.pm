@@ -9,6 +9,7 @@ use Tk::DialogBox;
 use warnings;
 use strict;
 use 5.10.1;
+use Scalar::Util 1.01 qw(reftype);
 
 use vars qw/$VERSION @ISA/;
 
