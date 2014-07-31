@@ -1,56 +1,52 @@
 package Tk::ObjEditorDialog;
 
-
 use strict;
 use warnings;
 
-use Carp ;
+use Carp;
 use Tk::ObjEditor;
 
 use vars qw/$VERSION @ISA/;
 
 #use Storable qw(dclone);
 
-use base  qw(Tk::Derived Tk::DialogBox);
+use base qw(Tk::Derived Tk::DialogBox);
 *isa = \&UNIVERSAL::isa;
 
 Tk::Widget->Construct('ObjEditorDialog');
 
-sub Populate
-  {
-    my ($cw,$args) = @_ ;
+sub Populate {
+    my ( $cw, $args ) = @_;
 
-    my $data  = delete $args->{'caller'} || delete $args->{'-caller'};
+    my $data = delete $args->{'caller'} || delete $args->{'-caller'};
     $cw->{direct} = delete $args->{'direct'} || delete $args->{'-direct'} || 0;
 
     # need to add different button for clone ????
-    my $buttons = $cw->{direct} ?  ['done'] : [qw/OK cancel/] ;
+    my $buttons = $cw->{direct} ? ['done'] : [qw/OK cancel/];
 
-    $args->{-buttons} =  $buttons;
+    $args->{-buttons} = $buttons;
 
-    $cw->SUPER::Populate($args) ;
+    $cw->SUPER::Populate($args);
 
-    $cw->add('ObjEditor', caller => $data, -direct => $cw->{direct})->pack ;
+    $cw->add( 'ObjEditor', caller => $data, -direct => $cw->{direct} )->pack;
 
-    return $cw ;
-  }
+    return $cw;
+}
 
-sub Show
-  {
-    my $cw=shift;
+sub Show {
+    my $cw = shift;
 
     my $hit = $cw->SUPER::Show(@_);
-    
-    if ($hit eq 'OK')
-      {
+
+    if ( $hit eq 'OK' ) {
+
         # no direct edit
         return $cw->Subwidget("objeditor")->get_data();
-      }
-    else
-      {
+    }
+    else {
         return $cw->Subwidget("objeditor")->get_orig_data();
-      }
-  }
+    }
+}
 
 =head1 NAME
 
@@ -119,5 +115,4 @@ perl(1), L<Tk>, L<Tk::HList>, L<Tk::ObjScanner>, L<Tk::ObjEditor>,
 L<Tk::DialogBox>
 
 =cut
-
 

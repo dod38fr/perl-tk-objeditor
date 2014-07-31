@@ -1,13 +1,12 @@
 package Tk::ObjEditor;
 
-
-use Carp ;
-use Tk::Derived ;
+use Carp;
+use Tk::Derived;
 use Tk::Frame;
-use Tk::ObjScanner 2.010 ;
-use Tk::Dialog ;
-use Tk::DialogBox ;
-use warnings ;
+use Tk::ObjScanner 2.010;
+use Tk::Dialog;
+use Tk::DialogBox;
+use warnings;
 use strict;
 
 use vars qw/$VERSION @ISA/;
@@ -19,362 +18,336 @@ use Storable qw(dclone);
 
 Tk::Widget->Construct('ObjEditor');
 
-sub edit_object
-  {
-    require Tk ;
+sub edit_object {
+    require Tk;
     import Tk;
-    my $object = shift ;
+    my $object = shift;
 
-    my $mw = MainWindow-> new ;
+    my $mw = MainWindow->new;
     $mw->geometry('+10+10');
-    my $s = $mw -> ObjEditor
-      (
-       '-caller' => $object, 
-       -direct => 1,
-       -title => 'object editor'
-      );
+    my $s = $mw->ObjEditor(
+        '-caller' => $object,
+        -direct   => 1,
+        -title    => 'object editor'
+    );
 
-    $s -> pack(-expand => 1, -fill => 'both') ;
-    $s->OnDestroy(sub{$mw->destroy;}) ;
+    $s->pack( -expand => 1, -fill => 'both' );
+    $s->OnDestroy( sub { $mw->destroy; } );
 
-    &MainLoop ; # Tk's
-  }
+    &MainLoop;    # Tk's
+}
 
-sub InitObject
-  {
-    my ($cw,$args) = @_ ;
+sub InitObject {
+    my ( $cw, $args ) = @_;
 
-    my $data  = delete $args->{'caller'} || delete $args->{'-caller'};
+    my $data = delete $args->{'caller'} || delete $args->{'-caller'};
     $cw->{direct} =
-      delete $args->{'direct'} || delete $args->{'-direct'} || 0 ;
+        delete $args->{'direct'} || delete $args->{'-direct'} || 0;
 
     $cw->{user_data} = $data;
 
-    my $edited_data = $cw->{direct} ? $data : dclone($data) ;
+    my $edited_data = $cw->{direct} ? $data : dclone($data);
 
-    $args->{'-caller'} = $edited_data ; # to pass to ObjScanner
-    $args->{'-show_tied'} = 0; # do not show tied data internal
+    $args->{'-caller'}    = $edited_data;    # to pass to ObjScanner
+    $args->{'-show_tied'} = 0;               # do not show tied data internal
 
+    $args->{title} = ref($data) . ' editor'
+        unless ( defined $args->{title} || defined $args->{-title} );
 
-    $args->{title} = ref($data).' editor' unless 
-      (defined $args->{title} || defined $args->{-title});
+    $cw->SUPER::InitObject($args);
 
-    $cw->SUPER::InitObject($args) ;
-
-    $cw->Subwidget('hlist')-> bind('<B3-ButtonRelease>', 
-                                   sub{$cw->modify_menu()}) ;
+    $cw->Subwidget('hlist')->bind( '<B3-ButtonRelease>', sub { $cw->modify_menu() } );
 
     $cw->{actions} = [];
 
-    return $cw ;
-  }
+    return $cw;
+}
 
-sub modify_menu
-  {
-    my $cw = shift;
-    my $item = shift ; # reserved for tests
+sub modify_menu {
+    my $cw   = shift;
+    my $item = shift;    # reserved for tests
 
-    unless (defined $item)
-      {
+    unless ( defined $item ) {
+
         # pointery and rooty are common widget method and must called on
         # the right widget to give accurate results
-        my $hlist=$cw->Subwidget('hlist');
-        $item = $cw->nearest($hlist->pointery - $hlist->rooty) ;
-      }
+        my $hlist = $cw->Subwidget('hlist');
+        $item = $cw->nearest( $hlist->pointery - $hlist->rooty );
+    }
 
-    $cw->selectionClear() ; # clear all
-    $cw->selectionSet($item) ;
+    $cw->selectionClear();    # clear all
+    $cw->selectionSet($item);
+
     #print "item $item to modify\n";
 
     my $menu = $cw->Menu;
 
-    my $ref = $cw->info("data",$item)->{item_ref} ;
-    my @children = $cw->infoChildren($item) ;
+    my $ref = $cw->info( "data", $item )->{item_ref};
+    my @children = $cw->infoChildren($item);
 
-    if (not $cw->isPseudoHash($$ref) and 
-        (isa($$ref,'ARRAY') or isa($$ref,'HASH')))
-      {
-        $menu -> add 
-          (
-           'command',
-           '-label' => 'add element', 
-           '-command' => sub {$cw->add_entry($item) ;}
-          );
-      }
-    elsif (not ref($$ref))
-      {
-        $menu -> add 
-          (
-           'command',
-           '-label' => 'modify element', 
-           '-command' => sub {$cw->modify_entry($item) ;}
-          );
-      }
+    if ( not $cw->isPseudoHash($$ref)
+        and ( isa( $$ref, 'ARRAY' ) or isa( $$ref, 'HASH' ) ) ) {
+        $menu->add(
+            'command',
+            '-label'   => 'add element',
+            '-command' => sub { $cw->add_entry($item); } );
+    }
+    elsif ( not ref($$ref) ) {
+        $menu->add(
+            'command',
+            '-label'   => 'modify element',
+            '-command' => sub { $cw->modify_entry($item); } );
+    }
 
-    if ($item eq 'root')
-      {
-        $menu -> add 
-          (
-           'command',
-           '-label' => 'reset', 
-           '-command' => sub {$cw->reset ;}
-          ) unless $cw->{direct} ;
-      }
-    else
-      {
-        $menu -> add 
-          (
-           'command',
-           '-label' => 'delete', 
-           '-command' => sub {$cw->delete_entry($item) ;}
-          );
-        }
+    if ( $item eq 'root' ) {
+        $menu->add(
+            'command',
+            '-label'   => 'reset',
+            '-command' => sub { $cw->reset; } ) unless $cw->{direct};
+    }
+    else {
+        $menu->add(
+            'command',
+            '-label'   => 'delete',
+            '-command' => sub { $cw->delete_entry($item); } );
+    }
 
-    $menu->Popup(-popover => 'cursor', -popanchor => 'nw');
+    $menu->Popup( -popover => 'cursor', -popanchor => 'nw' );
 
-    return $menu ;
-  }
+    return $menu;
+}
 
-sub reset
-  {
+sub reset {
     my $cw = shift;
 
-    $cw->{chief} = dclone($cw->{user_data});
+    $cw->{chief} = dclone( $cw->{user_data} );
     $cw->updateListBox();
-  }
+}
 
 # returns the edited data (a clone in case of no-direct option)
-sub get_data
-  {
+sub get_data {
     my $cw = shift;
 
     return $cw->{chief};
-  }
+}
 
-sub get_orig_data
-  {
+sub get_orig_data {
     my $cw = shift;
 
     return $cw->{user_data};
-  }
+}
 
-sub modify_entry
-  {
-    my $cw = shift;
-    my $item = shift ;
-    my $is_text = shift || 0 ;
+sub modify_entry {
+    my $cw      = shift;
+    my $item    = shift;
+    my $is_text = shift || 0;
 
-    my $text = $cw->entrycget($item,'-text');
-    my ($item_key) = ($text =~ m/^[\[\{](.*?)[\]\}]->/);
+    my $text = $cw->entrycget( $item, '-text' );
+    my ($item_key) = ( $text =~ m/^[\[\{](.*?)[\]\}]->/ );
 
-    my $c_data = $cw->entrycget($item,'-data');
-    my $ref = $c_data->{item_ref} ;
+    my $c_data = $cw->entrycget( $item, '-data' );
+    my $ref = $c_data->{item_ref};
 
-    my $modified = $cw->modify_widget($ref, $is_text);
+    my $modified = $cw->modify_widget( $ref, $is_text );
 
     return unless $modified;
 
     # replace value in parent sdata structure
-    $cw->update_item($item) ;
+    $cw->update_item($item);
 
-  }
+}
 
-sub update_item
-  {
-    my ($cw,$item) = @_[0,1] ;
-    my $direction = $_[2] || '' ;
+sub update_item {
+    my ( $cw, $item ) = @_[ 0, 1 ];
+    my $direction = $_[2] || '';
 
-    my $c_data = $cw->entrycget($item,'-data');
-    my $parent_item = $cw->info("parent",$item) ;
-    my $parent_c_data = $cw->entrycget($parent_item,'-data');
-    my $parent_ref = $item eq 'root' ? $cw->{chief}:
-      $parent_c_data->{tied_display} ? \tied($ {$parent_c_data->{item_ref}}) :
-        $parent_c_data->{item_ref} ;
-
+    my $c_data = $cw->entrycget( $item, '-data' );
+    my $parent_item = $cw->info( "parent", $item );
+    my $parent_c_data = $cw->entrycget( $parent_item, '-data' );
+    my $parent_ref =
+          $item eq 'root'                ? $cw->{chief}
+        : $parent_c_data->{tied_display} ? \tied( ${ $parent_c_data->{item_ref} } )
+        :                                  $parent_c_data->{item_ref};
 
     # update HList display
-    my $text = $cw->describe_element($parent_ref,$c_data->{index}) ;
-    $cw->entryconfigure($item,-text => $text);
+    my $text = $cw->describe_element( $parent_ref, $c_data->{index} );
+    $cw->entryconfigure( $item, -text => $text );
 
     # update parent if necessary
-    if ($parent_c_data->{tied_display} and $direction ne 'down')
-      {
-        $cw->update_item($parent_item,'up') ;
-      }
-
-    # update below if necessary
-    if ($c_data->{tied_display} and $direction ne 'up')
-      {
-        my $h = $cw->Subwidget('hlist');
-        foreach my $child ( $h->infoChildren($item) ) 
-          {
-            $cw->update_item($child, 'down');
-          }
-      }
+    if ( $parent_c_data->{tied_display} and $direction ne 'down' ) {
+        $cw->update_item( $parent_item, 'up' );
     }
 
-sub modify_widget
-  {
-    my $cw = shift;
-    my $ref = shift ;
-    my $is_text = shift ;
+    # update below if necessary
+    if ( $c_data->{tied_display} and $direction ne 'up' ) {
+        my $h = $cw->Subwidget('hlist');
+        foreach my $child ( $h->infoChildren($item) ) {
+            $cw->update_item( $child, 'down' );
+        }
+    }
+}
+
+sub modify_widget {
+    my $cw      = shift;
+    my $ref     = shift;
+    my $is_text = shift;
 
     # construct popup dialog to change item value.
-    my $db = $cw->DialogBox(-title => 'modify element',
-                            -buttons => ["OK", "Cancel"]) ;
-    $cw->{current_dialog} = $db ;
+    my $db = $cw->DialogBox(
+        -title   => 'modify element',
+        -buttons => [ "OK", "Cancel" ] );
+    $cw->{current_dialog} = $db;
 
     # Note: focus is taken over by DialogBox and given to "OK"
 
-    $db->add('Label', -text => 'Please enter new value')->pack;
+    $db->add( 'Label', -text => 'Please enter new value' )->pack;
 
     my $textw;
-    if ($is_text or (defined $$ref and $$ref =~ /\n/))
-      {
-        $textw = $db->add('Text')->pack(-expand => 1, -fill => 'both');
-        $textw -> insert('end',$$ref) ;
-        $db->bind('<Return>',''); # remove Dialog Box binding on return
-	$db->Advertise('Entry' => $textw ) ;
-      }
-    else
-      {
-	my $entry = $db->add('Entry',-textvariable => $ref)
-	  ->pack(-expand => 1, -fill => 'x') ;
-	$db->Advertise('Entry' => $entry ) ;
-      }
+    if ( $is_text or ( defined $$ref and $$ref =~ /\n/ ) ) {
+        $textw = $db->add('Text')->pack( -expand => 1, -fill => 'both' );
+        $textw->insert( 'end', $$ref );
+        $db->bind( '<Return>', '' );    # remove Dialog Box binding on return
+        $db->Advertise( 'Entry' => $textw );
+    }
+    else {
+        my $entry = $db->add( 'Entry', -textvariable => $ref )->pack( -expand => 1, -fill => 'x' );
+        $db->Advertise( 'Entry' => $entry );
+    }
 
     # Show method should be enhanced to accept a "focus" parameter
     # so focus could be given to the actual editing widget
-    my $answer = $db->Show ;
+    my $answer = $db->Show;
 
     return 0 unless $answer eq "OK";
 
     # the '- 1c' skips the newline erroneously added by the text widget
     # Thanks Slaven
-    $$ref = $textw->get('1.0','end - 1c') if defined $textw ;
+    $$ref = $textw->get( '1.0', 'end - 1c' ) if defined $textw;
     return 1;
-  }
+}
 
-sub add_entry
-  {
-    my $cw = shift;
-    my $item = shift ;
+sub add_entry {
+    my $cw   = shift;
+    my $item = shift;
 
     # construct popup dialog to change item value.
-    my $db = $cw->DialogBox(-title => 'add element',
-                            -buttons => ["OK", "Cancel"]) ;
+    my $db = $cw->DialogBox(
+        -title   => 'add element',
+        -buttons => [ "OK", "Cancel" ] );
 
     my $ok = $db->Subwidget('B_OK');
 
     # enforce that a type is choosen by the user and that a new key is used
-    my ($key_ok, $type_ok)=(0,0);
-    my $check = sub {my $what = $key_ok && $type_ok ? 'normal': 'disabled';
-                     $ok->configure(-state => $what);};
+    my ( $key_ok, $type_ok ) = ( 0, 0 );
+    my $check = sub {
+        my $what = $key_ok && $type_ok ? 'normal' : 'disabled';
+        $ok->configure( -state => $what );
+    };
 
-    &$check; # for fun and for test
+    &$check;    # for fun and for test
 
-    my $ref_ref = $cw->entrycget($item,'-data')->{item_ref};
-    my $ref = $$ref_ref ;
+    my $ref_ref = $cw->entrycget( $item, '-data' )->{item_ref};
+    my $ref = $$ref_ref;
 
-    my $is_hash_like = isa($ref,'HASH');
+    my $is_hash_like = isa( $ref, 'HASH' );
 
-    my $what = $is_hash_like ? 'key' : 'index' ;
-    $db->add('Label', -text => "enter new $what")->pack;
+    my $what = $is_hash_like ? 'key' : 'index';
+    $db->add( 'Label', -text => "enter new $what" )->pack;
 
-    my $key = $is_hash_like ? '' : scalar(@$ref) ;
+    my $key = $is_hash_like ? '' : scalar(@$ref);
 
-    $db->add('Entry',-textvariable => \$key,
-             -validate => 'key',
-             -validatecommand => sub
-             {
-               my $prop = shift;
-               #print "key: '$prop'\n";
-               if (($is_hash_like and not exists $ref->{$prop} ) or
-                   (isa($ref,'ARRAY') and not defined $ref->[$prop] ))
-                 {$key_ok =1 ;}
-               else {$key_ok = 0;};
-               &$check ;
-               1;
-             })->pack;
+    $db->add(
+        'Entry',
+        -textvariable    => \$key,
+        -validate        => 'key',
+        -validatecommand => sub {
+            my $prop = shift;
 
-    $db->add('Label', -text => "Specify new element type")->pack;
-    my $type = 'undef' ;
-    my $mb = $db->add('Menubutton', -textvariable => \$type,
-                      qw/-indicatoron 1 -relief raised/);
-    
-    my $menu = $mb->Menu(-tearoff => 0);
-    $mb->configure(-menu => $menu);
+            #print "key: '$prop'\n";
+            if (   ( $is_hash_like and not exists $ref->{$prop} )
+                or ( isa( $ref, 'ARRAY' ) and not defined $ref->[$prop] ) ) {
+                $key_ok = 1;
+            }
+            else { $key_ok = 0; }
+            &$check;
+            1;
+        } )->pack;
 
-    foreach (qw/array hash scalar text/)
-      {
-        $mb->radiobutton 
-          (
-           -label => $_, -value => $_, -variable => \$type,
-           -indicatoron => 0, 
-           -command => sub{$type_ok=1; &$check;}
-          ) ;
-      }
+    $db->add( 'Label', -text => "Specify new element type" )->pack;
+    my $type = 'undef';
+    my $mb   = $db->add(
+        'Menubutton',
+        -textvariable => \$type,
+        qw/-indicatoron 1 -relief raised/
+    );
 
-    $mb -> pack ;
-    return if $db->Show ne 'OK' ;
+    my $menu = $mb->Menu( -tearoff => 0 );
+    $mb->configure( -menu => $menu );
+
+    foreach (qw/array hash scalar text/) {
+        $mb->radiobutton(
+            -label       => $_,
+            -value       => $_,
+            -variable    => \$type,
+            -indicatoron => 0,
+            -command     => sub { $type_ok = 1; &$check; } );
+    }
+
+    $mb->pack;
+    return if $db->Show ne 'OK';
 
     # update data structure
     my $new;
-    if    ($type eq 'hash')  { $new = {} ;}
-    elsif ($type eq 'array') { $new = [];}
-    elsif ($type eq 'text')  { $cw->modify_widget(\$new,1);}
-    else                     { $cw->modify_widget(\$new,0) ;}
+    if    ( $type eq 'hash' )  { $new = {}; }
+    elsif ( $type eq 'array' ) { $new = []; }
+    elsif ( $type eq 'text' ) { $cw->modify_widget( \$new, 1 ); }
+    else                      { $cw->modify_widget( \$new, 0 ); }
 
-    return unless defined $new ;
+    return unless defined $new;
 
-    $ref->{$key} = $new if isa($ref,'HASH') ;
-    $ref->[$key] = $new if isa($ref,'ARRAY') ;
+    $ref->{$key} = $new if isa( $ref, 'HASH' );
+    $ref->[$key] = $new if isa( $ref, 'ARRAY' );
 
     #recompute the text for parent widget
-    my $text = $cw->element(\$ref) ;
-    $cw->entryconfigure($item,'-text',$text );
+    my $text = $cw->element( \$ref );
+    $cw->entryconfigure( $item, '-text', $text );
 
     #(re)display the children
     $cw->deleteOffsprings($item);
-    $cw->displaySubItem($item); # by default do not display tied internals
-  }
+    $cw->displaySubItem($item);    # by default do not display tied internals
+}
 
-sub delete_entry
-  {
-    my $cw = shift;
-    my $item = shift ;
+sub delete_entry {
+    my $cw   = shift;
+    my $item = shift;
 
-    my $item_key = $cw->entrycget($item,'-data')->{index} || '';
+    my $item_key = $cw->entrycget( $item, '-data' )->{index} || '';
 
-    my $dialog = $cw->Dialog
-      (
-       -title => 'WARNING',
-       -text => "Delete the '$item_key' element and all its children ?",
-       -buttons => ["Yes","No"]
-      );
+    my $dialog = $cw->Dialog(
+        -title   => 'WARNING',
+        -text    => "Delete the '$item_key' element and all its children ?",
+        -buttons => [ "Yes", "No" ] );
     my $answer = $dialog->Show();
 
     return if $answer eq "No";
 
+    my $parent_item = $cw->info( "parent", $item );
+    my $text_parent = $cw->entrycget( $parent_item, "-text" );
+    my $parent_ref  = $cw->entrycget( $parent_item, '-data' )->{item_ref};
 
-    my $parent_item = $cw->info("parent",$item);
-    my $text_parent = $cw->entrycget($parent_item,"-text");
-    my $parent_ref = $cw->entrycget($parent_item,'-data')->{item_ref};
+    delete $$parent_ref->{$item_key} if isa( $$parent_ref, 'HASH' );
+    splice @$$parent_ref, $item_key, 1 if isa( $$parent_ref, 'ARRAY' );
 
-    delete $$parent_ref->{$item_key} if isa($$parent_ref, 'HASH') ;
-    splice @$$parent_ref,$item_key,1  if isa($$parent_ref, 'ARRAY') ;
-
-    $cw->entryconfigure($parent_item,"-text",$cw->element($parent_ref));
+    $cw->entryconfigure( $parent_item, "-text", $cw->element($parent_ref) );
 
     $cw->deleteEntry($item);
-  }
+}
 
 # used for tests
-sub get_current_dialog 
-  {
-    my $self = shift ;
-    return $self->{current_dialog} ;
-  }
+sub get_current_dialog {
+    my $self = shift;
+    return $self->{current_dialog};
+}
 
 1;
 
