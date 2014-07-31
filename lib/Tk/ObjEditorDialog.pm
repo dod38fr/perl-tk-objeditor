@@ -11,7 +11,6 @@ use vars qw/$VERSION @ISA/;
 #use Storable qw(dclone);
 
 use base qw(Tk::Derived Tk::DialogBox);
-*isa = \&UNIVERSAL::isa;
 
 Tk::Widget->Construct('ObjEditorDialog');
 

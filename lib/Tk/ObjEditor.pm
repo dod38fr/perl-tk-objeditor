@@ -8,15 +8,19 @@ use Tk::Dialog;
 use Tk::DialogBox;
 use warnings;
 use strict;
+use 5.10.1;
 
 use vars qw/$VERSION @ISA/;
 
 use Storable qw(dclone);
 
-@ISA = qw(Tk::Derived Tk::ObjScanner);
-*isa = \&UNIVERSAL::isa;
+use base qw(Tk::Derived Tk::ObjScanner);
 
 Tk::Widget->Construct('ObjEditor');
+
+sub _isa {
+    return (reftype($_[0]) // '') eq $_[1] ;
+}
 
 sub edit_object {
     require Tk;
@@ -86,7 +90,7 @@ sub modify_menu {
     my @children = $cw->infoChildren($item);
 
     if ( not $cw->isPseudoHash($$ref)
-        and ( isa( $$ref, 'ARRAY' ) or isa( $$ref, 'HASH' ) ) ) {
+        and ( _isa( $$ref, 'ARRAY' ) or _isa( $$ref, 'HASH' ) ) ) {
         $menu->add(
             'command',
             '-label'   => 'add element',
@@ -249,7 +253,7 @@ sub add_entry {
     my $ref_ref = $cw->entrycget( $item, '-data' )->{item_ref};
     my $ref = $$ref_ref;
 
-    my $is_hash_like = isa( $ref, 'HASH' );
+    my $is_hash_like = _isa( $ref, 'HASH' );
 
     my $what = $is_hash_like ? 'key' : 'index';
     $db->add( 'Label', -text => "enter new $what" )->pack;
@@ -265,7 +269,7 @@ sub add_entry {
 
             #print "key: '$prop'\n";
             if (   ( $is_hash_like and not exists $ref->{$prop} )
-                or ( isa( $ref, 'ARRAY' ) and not defined $ref->[$prop] ) ) {
+                or ( _isa( $ref, 'ARRAY' ) and not defined $ref->[$prop] ) ) {
                 $key_ok = 1;
             }
             else { $key_ok = 0; }
@@ -305,8 +309,8 @@ sub add_entry {
 
     return unless defined $new;
 
-    $ref->{$key} = $new if isa( $ref, 'HASH' );
-    $ref->[$key] = $new if isa( $ref, 'ARRAY' );
+    $ref->{$key} = $new if _isa( $ref, 'HASH' );
+    $ref->[$key] = $new if _isa( $ref, 'ARRAY' );
 
     #recompute the text for parent widget
     my $text = $cw->element( \$ref );
@@ -335,8 +339,8 @@ sub delete_entry {
     my $text_parent = $cw->entrycget( $parent_item, "-text" );
     my $parent_ref  = $cw->entrycget( $parent_item, '-data' )->{item_ref};
 
-    delete $$parent_ref->{$item_key} if isa( $$parent_ref, 'HASH' );
-    splice @$$parent_ref, $item_key, 1 if isa( $$parent_ref, 'ARRAY' );
+    delete $$parent_ref->{$item_key} if _isa( $$parent_ref, 'HASH' );
+    splice @$$parent_ref, $item_key, 1 if _isa( $$parent_ref, 'ARRAY' );
 
     $cw->entryconfigure( $parent_item, "-text", $cw->element($parent_ref) );
 
