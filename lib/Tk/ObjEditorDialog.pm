@@ -77,7 +77,7 @@ caller: The ref of the object or hash or array to edit (mandatory).
 
 =item *
 
-title: the title of the menu created by the editor (optionnal)
+title: the title of the menu created by the editor (optional)
 
 =item *
 

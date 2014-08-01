@@ -435,7 +435,7 @@ user cannot cancel (or undo) the edition.
 
 =item *
 
--title: the title of the menu created by the editor (optionnal)
+-title: the title of the menu created by the editor (optional)
 
 =item *
 
