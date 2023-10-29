@@ -95,7 +95,7 @@ package main;
 ok( 1, "compiled" );
 
 my $toto;
-my $mw = eval { MainWindow->new };
+my $mw = eval { MainWindow->new(-width => 600, -height => 400) };
 
 SKIP: {
     skip "Cannot open Tk", 4 unless defined $mw;
