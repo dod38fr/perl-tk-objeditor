@@ -406,7 +406,7 @@ the edition. This means that any reference to the internals of old
 data structure will stay on the old datastructure and will not be
 aware of the new values entered with this widget.
 
-Unforunately, undirect edition will break if the cloned data structure
+Unfortunately, undirect edition will break if the cloned data structure
 contains code reference.
 
 =item directly
